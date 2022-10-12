@@ -61,6 +61,29 @@ class geosteering_dataset:
 
         self.P = self.arr_perm * (1 - self.arr_Sw) * self.arr_poro
 
+        # computing of the density profile
+        rho_f = 1.0  # density of fluid (g/cm3)
+        rho_ss = 2.6  # density of sandstones (g/cm3)
+        rho_sh = 2.3  # density of shales (g/cm3)
+
+        arr_m_dens = (1 - arr_Vsh) * rho_ss + arr_Vsh * rho_sh  # matrix density accounting for V shale
+        self.arr_dens = arr_m_dens - arr_poro * (arr_m_dens - rho_f)  # calculate bulk density
+
+        # computing of the neutron profile
+        k = 0.3  # lithological coefficient
+        self.arr_neut = self.arr_poro + k * self.arr_Vsh  # calculating of neutron profile
+
+        # computing of the GR profile
+        self.arr_gr = 0.1 * ((-100 * self.arr_Vsh ** 2 + 340 * self.arr_Vsh + 49) ** 0.5 - 7)
+
+        # computing of the travel time profile
+
+        tt_ss = 44.4  # travel time for sandstone matrix
+        tt_f = 185  # travel time for fluid
+        tt_sh = 70  # shales
+
+        self.arr_tt = self.arr_poro * (tt_f - tt_ss) + self.arr_Vsh * (tt_sh - tt_ss) + tt_ss
+
     def visualize(self, array, title, x_label, y_label, cmap='hsv', size_inches=(20, 2)):
         fig1, ax = plt.subplots()
         fig1.set_size_inches(20, 2)
