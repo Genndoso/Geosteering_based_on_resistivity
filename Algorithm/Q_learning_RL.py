@@ -7,7 +7,7 @@ class q_learning:
 
     def __init__(self, map, q_goal, alpha, gamma, epsilon, n_episodes,
                  n_iterations):  # Initialize Q-learning parameters
-        # Actions: 0 left, 1 right, 2 up 3 down
+        # Actions: 0 right, 1 up, 2 down
         self.actions = {0: np.array([1, 0]), 1: np.array([1, 1]), 2: np.array([1, -1])}
         self.map = map
         self.Q = np.zeros((map.shape[0], map.shape[1], 3))
@@ -19,9 +19,7 @@ class q_learning:
         self.epsilon = epsilon
         self.n_iterations = n_iterations
         self.n_episodes = n_episodes
-        # self.obstacles = np.where(map == 1, True, False)
 
-        #    self.obs_thres = 10
         self.R = 0
         self.plotting_R = []
 
@@ -66,7 +64,7 @@ class q_learning:
         s = self.initialize_s()
         traj = []
         angle_constraint = 2
-        gr = alg.greedy_algorithm_main(self.map, angle_constraint=2, step_back=3)
+        gr = alg.greedy_algorithm_main(self.map, angle_constraint = angle_constraint, step_back=3)
 
         for i in range(0, self.n_iterations):
 
