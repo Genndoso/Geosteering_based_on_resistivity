@@ -103,18 +103,21 @@ class greedy_algorithm_main:
             best_candidate = all_candidates[0]
             cand_point = next_point
             OFV_best = 0
-            for l in range(0, len(all_candidates) + 1):
-                OFV = 0
-                for v in range(0, len(all_candidates[1])):
-                    cand_point = [cand_point[0] + 1, cand_point[1] + all_candidates[l][v]]
-                    if l == 0:
-                        OFV_best += self.prod_map[cand_point[0], cand_point[1]]
-                    else:
-                        OFV += self.prod_map[cand_point[0], cand_point[1]]
+            if next_point[1] >= self.prod_map.shape[1] or next_point[0] >= self.prod_map.shape[0]:
+                greedy_simple = True:
+            else:
+                for l in range(0, len(all_candidates) + 1):
+                    OFV = 0
+                    for v in range(0, len(all_candidates[1])):
+                        cand_point = [cand_point[0] + 1, cand_point[1] + all_candidates[l][v]]
+                        if l == 0:
+                            OFV_best += self.prod_map[cand_point[0], cand_point[1]]
+                        else:
+                            OFV += self.prod_map[cand_point[0], cand_point[1]]
 
-                if OFV > OFV_best:
-                    best_candidate = all_candidates[l]
-                    OFV_best = OFV
+                    if OFV > OFV_best:
+                        best_candidate = all_candidates[l]
+                        OFV_best = OFV
 
 
             # calculation of angle constraint
@@ -130,21 +133,22 @@ class greedy_algorithm_main:
 
             next_point = next_point[next_point[0] + self.step_x, next_point[1] + best_candidate[0]]
 
-            # greedy main
-            # if (self.prod_map[next_point[0], next_point[1] + step_y] / (np.sqrt(2) * dH) > self.prod_map[
-            #     next_point[0], next_point[1] + 0]) and \
-            #         (self.prod_map[next_point[0], next_point[1] + step_y] / (np.sqrt(2) * dH) > self.prod_map[
-            #             next_point[0], next_point[1] - step_y] / (np.sqrt(2) * dH)):
-            #     if next_point[1] > self.prod_map.shape[1]:
-            #         next_point = [next_point[0] + self.step_x, next_point[1]]
-            #     next_point = [next_point[0] + self.step_x, next_point[1] + step_y]
-            # elif (self.prod_map[next_point[0], next_point[1] + 0] > self.prod_map[
-            #     next_point[0], next_point[1] + step_y] / (np.sqrt(2) * dH)) and \
-            #         (self.prod_map[next_point[0], next_point[1] + 0] > self.prod_map[
-            #             next_point[0], next_point[1] - step_y] / (np.sqrt(2) * dH)):
-            #     next_point = [next_point[0] + self.step_x, next_point[1] + 0]
-            # else:
-            #     next_point = [next_point[0] + self.step_x, next_point[1] - step_y]
+            #greedy main
+            if greedy_simple:
+                if (self.prod_map[next_point[0], next_point[1] + step_y] / (np.sqrt(2) * dH) > self.prod_map[
+                    next_point[0], next_point[1] + 0]) and \
+                        (self.prod_map[next_point[0], next_point[1] + step_y] / (np.sqrt(2) * dH) > self.prod_map[
+                            next_point[0], next_point[1] - step_y] / (np.sqrt(2) * dH)):
+                    if next_point[1] > self.prod_map.shape[1]:
+                        next_point = [next_point[0] + self.step_x, next_point[1]]
+                    next_point = [next_point[0] + self.step_x, next_point[1] + step_y]
+                elif (self.prod_map[next_point[0], next_point[1] + 0] > self.prod_map[
+                    next_point[0], next_point[1] + step_y] / (np.sqrt(2) * dH)) and \
+                        (self.prod_map[next_point[0], next_point[1] + 0] > self.prod_map[
+                            next_point[0], next_point[1] - step_y] / (np.sqrt(2) * dH)):
+                    next_point = [next_point[0] + self.step_x, next_point[1] + 0]
+                else:
+                    next_point = [next_point[0] + self.step_x, next_point[1] - step_y]
 
             traj_points.append(next_point[1])
             # print(len(traj_points),i)
