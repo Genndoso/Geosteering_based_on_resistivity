@@ -10,7 +10,7 @@ import itertools
 class greedy_algorithm_main:
     def __init__(self, final_array, angle_constraint=10, step_back=3):
         self.prod_map = final_array
-        self.angle_constraint = angle_constraint*step_back/(10)
+        self.angle_constraint = angle_constraint * step_back / (10)
         self.step_x = 1
         self.step_back = step_back
 
@@ -20,7 +20,7 @@ class greedy_algorithm_main:
         degrees = [3, 4, 5, 6]
         r2_score_base = 0
         for i in degrees:
-            y = interp(traj,degree=i)
+            y = interp(traj, degree=i)
             r2_check = r2_score(traj, y)
             if r2_check > r2_score_base:
                 r2_score_base = r2_check
@@ -41,21 +41,21 @@ class greedy_algorithm_main:
         # in which case we approximate linearly from the two nearest data points
         else:
             if xVal < x[ind1]:
-                ind1, ind2 = ind1- 1, ind1
+                ind1, ind2 = ind1 - 1, ind1
             else:
                 ind1, ind2 = ind1, ind1 + 1
-            yVal = y[ind1] + (y[ind2 ] - y[ind1]) * (xVal - x[ind1]) / (x[ind2 ] - x[ind1])
-            slopeVal = slope[ind1] + (slope[ind2 ] - slope[ind1]) * (xVal - x[ind1]) / (x[ind2 ] - x[ind1])
+            yVal = y[ind1] + (y[ind2] - y[ind1]) * (xVal - x[ind1]) / (x[ind2] - x[ind1])
+            slopeVal = slope[ind1] + (slope[ind2] - slope[ind1]) * (xVal - x[ind1]) / (x[ind2] - x[ind1])
         intercVal = yVal - slopeVal * xVal
 
         x_val = [x.min(), x.max()]
-        y_val = [slopeVal * x.min( ) + intercVal, slopeVal * x.max( ) + intercVal]
+        y_val = [slopeVal * x.min() + intercVal, slopeVal * x.max() + intercVal]
 
         return x_val, y_val
 
     def deg_calc(self, traj):
-        x_val_1 ,y_val_1 = self.tangent_func(traj, len(traj ) - 1)
-        x_val_2 ,y_val_2 = self.tangent_func(traj, len(traj ) - self.step_back)
+        x_val_1, y_val_1 = self.tangent_func(traj, len(traj) - 1)
+        x_val_2, y_val_2 = self.tangent_func(traj, len(traj) - self.step_back)
 
         vector_1 = np.array(y_val_1)
         vector_2 = np.array(y_val_2)
@@ -63,12 +63,11 @@ class greedy_algorithm_main:
         dot_prod = np.dot(vector_1, vector_2)
         unit_vector_1 = np.linalg.norm(vector_1)
         unit_vector_2 = np.linalg.norm(vector_2)
-        cos_angle = min(dot_prod/(unit_vector_1 * unit_vector_2), 1)
+        cos_angle = min(dot_prod / (unit_vector_1 * unit_vector_2), 1)
         deg = np.degrees(np.arccos(cos_angle))
         return deg
 
-
-    def greedy(self, start_point = [0, 40], step_y = 10, steps_ahead = 5):
+    def greedy(self, start_point=[0, 40], step_y=10, steps_ahead=3):
         traj = np.zeros_like(self.prod_map)
 
         traj[start_point[0], start_point[1]] = 1
@@ -78,15 +77,51 @@ class greedy_algorithm_main:
         obj_func_val = 0
         pass_count = 0
         k = 0
+        greedy_simple = False
         items = [0, 1, -1]
         all_candidates = []
+
         for item in itertools.product(items, repeat=steps_ahead):
             all_candidates.append(list(item))
 
+        #   obtain OFV of all possible candidates
+        for i in range(1, self.prod_map.shape[0] - start_point[0] - 1):
 
-    #   obtain OFV of all possible candidates
+            best_candidate = all_candidates[0]
+            cand_point = next_point
+            OFV_best = 0
 
-        for i in range (1, self.prod_map.shape[0] - start_point[0]):
+            if (next_point[1] >= self.prod_map.shape[1] - steps_ahead * self.step_x) or (
+                    next_point[0] >= self.prod_map.shape[0] - steps_ahead * self.step_x):
+                greedy_simple = True
+            else:
+                for l in range(0, len(all_candidates)):
+                    OFV = 0
+                    cand_point = next_point
+                    for v in range(0, len(all_candidates[1])):
+                        cand_point = [cand_point[0] + 1, cand_point[1] + all_candidates[l][v]]
+                        if l == 0:
+                            OFV_best += self.prod_map[cand_point[0], cand_point[1]]
+                        else:
+
+                            OFV += self.prod_map[cand_point[0], cand_point[1]]
+
+                    if OFV > OFV_best:
+                        best_candidate = all_candidates[l]
+                        OFV_best = OFV
+
+            # calculation of angle constraint
+            if i > 10:
+                # print(next_point[0])
+                deg = self.deg_calc(traj_points)
+
+                if deg >= self.angle_constraint:
+                    next_point = [next_point[0] + self.step_x, next_point[1]]
+                    traj_points.append(next_point[1])
+                    traj[next_point[0], next_point[1]] = 1
+                    continue
+
+            next_point = [next_point[0] + self.step_x, next_point[1] + best_candidate[0]]
 
             # upper boundary constraint
             if next_point[1] >= self.prod_map.shape[1] - self.step_x:
@@ -100,40 +135,7 @@ class greedy_algorithm_main:
                 traj_points.append(next_point[1])
                 continue
 
-            best_candidate = all_candidates[0]
-            cand_point = next_point
-            OFV_best = 0
-            if next_point[1] >= self.prod_map.shape[1] or next_point[0] >= self.prod_map.shape[0]:
-                greedy_simple = True
-            else:
-                for l in range(0, len(all_candidates) + 1):
-                    OFV = 0
-                    for v in range(0, len(all_candidates[1])):
-                        cand_point = [cand_point[0] + 1, cand_point[1] + all_candidates[l][v]]
-                        if l == 0:
-                            OFV_best += self.prod_map[cand_point[0], cand_point[1]]
-                        else:
-                            OFV += self.prod_map[cand_point[0], cand_point[1]]
-
-                    if OFV > OFV_best:
-                        best_candidate = all_candidates[l]
-                        OFV_best = OFV
-
-
-            # calculation of angle constraint
-            if i > 10:
-                # print(next_point[0])
-                deg = self.deg_calc(traj_points)
-
-                if deg >= self.angle_constraint:
-                    next_point = [next_point[0] + self.step_x, next_point[1]]
-                    traj_points.append(next_point[1])
-                    traj[next_point[0], next_point[1]] = 1
-                    continue
-
-            next_point = next_point[next_point[0] + self.step_x, next_point[1] + best_candidate[0]]
-
-            #greedy main
+            # greedy main
             if greedy_simple:
                 if (self.prod_map[next_point[0], next_point[1] + step_y] / (np.sqrt(2) * dH) > self.prod_map[
                     next_point[0], next_point[1] + 0]) and \
@@ -151,7 +153,7 @@ class greedy_algorithm_main:
                     next_point = [next_point[0] + self.step_x, next_point[1] - step_y]
 
             traj_points.append(next_point[1])
-            # print(len(traj_points),i)
+
             obj_func_val += self.prod_map[next_point[0], next_point[1]]
             traj[next_point[0], next_point[1]] = 1
 
