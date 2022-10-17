@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 import scipy.interpolate
+import itertools
+
 
 class greedy_algorithm_main:
     def __init__(self, final_array, angle_constraint=10, step_back=3):
@@ -66,7 +68,7 @@ class greedy_algorithm_main:
         return deg
 
 
-    def greedy(self, start_point = [0, 40], step = 10):
+    def greedy(self, start_point = [0, 40], step_y = 10, steps_ahead = 5):
         traj = np.zeros_like(self.prod_map)
 
         traj[start_point[0], start_point[1]] = 1
@@ -76,22 +78,46 @@ class greedy_algorithm_main:
         obj_func_val = 0
         pass_count = 0
         k = 0
+        items = [0, 1, -1]
+        all_candidates = []
+        for item in itertools.product(items, repeat=steps_ahead):
+            all_candidates.append(list(item))
+
+
+    #   obtain OFV of all possible candidates
+
         for i in range (1, self.prod_map.shape[0] - start_point[0]):
 
             # upper boundary constraint
-            if next_point[1] >= self.prod_map.shape[1] - step:
-                next_point = [next_point[0] + self.step_x, next_point[1] - step]
+            if next_point[1] >= self.prod_map.shape[1] - self.step_x:
+                next_point = [next_point[0] + self.step_x, next_point[1] - step_y]
                 traj_points.append(next_point[1])
                 continue
 
             # lower boundary constraint
-            if next_point[1] < step:
+            if next_point[1] < step_y:
                 next_point = [next_point[0] + self.step_x, next_point[1]]
                 traj_points.append(next_point[1])
                 continue
 
-            # calculation of angle constraint
+            best_candidate = all_candidates[0]
+            cand_point = next_point
+            OFV_best = 0
+            for l in range(0, len(all_candidates) + 1):
+                OFV = 0
+                for v in range(0, len(all_candidates[1])):
+                    cand_point = [cand_point[0] + 1, cand_point[1] + all_candidates[v]]
+                    if l == 0:
+                        OFV_best += self.prod_map[cand_point[0], cand_point[1]]
+                    else:
+                        OFV += self.prod_map[cand_point[0], cand_point[1]]
 
+                if OFV > OFV_best:
+                    best_candidate = all_candidates[l]
+                    OFV_best = OFV
+
+
+            # calculation of angle constraint
             if i > 10:
                 # print(next_point[0])
                 deg = self.deg_calc(traj_points)
@@ -102,21 +128,23 @@ class greedy_algorithm_main:
                     traj[next_point[0], next_point[1]] = 1
                     continue
 
+            next_point = next_point[next_point[0] + self.step_x, next_point[1] + best_candidate[0]]
+
             # greedy main
-            if (self.prod_map[next_point[0], next_point[1] + step] / (np.sqrt(2) * dH) > self.prod_map[
-                next_point[0], next_point[1] + 0]) and \
-                    (self.prod_map[next_point[0], next_point[1] + step] / (np.sqrt(2) * dH) > self.prod_map[
-                        next_point[0], next_point[1] - step] / (np.sqrt(2) * dH)):
-                if next_point[1] > self.prod_map.shape[1]:
-                    next_point = [next_point[0] + self.step_x, next_point[1]]
-                next_point = [next_point[0] + self.step_x, next_point[1] + step]
-            elif (self.prod_map[next_point[0], next_point[1] + 0] > self.prod_map[
-                next_point[0], next_point[1] + step] / (np.sqrt(2) * dH)) and \
-                    (self.prod_map[next_point[0], next_point[1] + 0] > self.prod_map[
-                        next_point[0], next_point[1] - step] / (np.sqrt(2) * dH)):
-                next_point = [next_point[0] + self.step_x, next_point[1] + 0]
-            else:
-                next_point = [next_point[0] + self.step_x, next_point[1] - step]
+            # if (self.prod_map[next_point[0], next_point[1] + step_y] / (np.sqrt(2) * dH) > self.prod_map[
+            #     next_point[0], next_point[1] + 0]) and \
+            #         (self.prod_map[next_point[0], next_point[1] + step_y] / (np.sqrt(2) * dH) > self.prod_map[
+            #             next_point[0], next_point[1] - step_y] / (np.sqrt(2) * dH)):
+            #     if next_point[1] > self.prod_map.shape[1]:
+            #         next_point = [next_point[0] + self.step_x, next_point[1]]
+            #     next_point = [next_point[0] + self.step_x, next_point[1] + step_y]
+            # elif (self.prod_map[next_point[0], next_point[1] + 0] > self.prod_map[
+            #     next_point[0], next_point[1] + step_y] / (np.sqrt(2) * dH)) and \
+            #         (self.prod_map[next_point[0], next_point[1] + 0] > self.prod_map[
+            #             next_point[0], next_point[1] - step_y] / (np.sqrt(2) * dH)):
+            #     next_point = [next_point[0] + self.step_x, next_point[1] + 0]
+            # else:
+            #     next_point = [next_point[0] + self.step_x, next_point[1] - step_y]
 
             traj_points.append(next_point[1])
             # print(len(traj_points),i)
