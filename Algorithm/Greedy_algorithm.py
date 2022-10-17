@@ -104,7 +104,7 @@ class greedy_algorithm_main:
             cand_point = next_point
             OFV_best = 0
             if next_point[1] >= self.prod_map.shape[1] or next_point[0] >= self.prod_map.shape[0]:
-                greedy_simple = True:
+                greedy_simple = True
             else:
                 for l in range(0, len(all_candidates) + 1):
                     OFV = 0
