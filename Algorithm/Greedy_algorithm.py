@@ -106,7 +106,7 @@ class greedy_algorithm_main:
             for l in range(0, len(all_candidates) + 1):
                 OFV = 0
                 for v in range(0, len(all_candidates[1])):
-                    cand_point = [cand_point[0] + 1, cand_point[1] + all_candidates[v]]
+                    cand_point = [cand_point[0] + 1, cand_point[1] + all_candidates[l][v]]
                     if l == 0:
                         OFV_best += self.prod_map[cand_point[0], cand_point[1]]
                     else:
