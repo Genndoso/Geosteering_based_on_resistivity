@@ -63,7 +63,7 @@ class ProdMapEnv(Env):
         info = {}
         rw = 0
         if (self.state[0] == self.observation_space.shape[0]) or \
-                + (self.state[1] >= self.observation_space.shape[1]) or (self.state[1] <= 0) or (self.state[0] <= 0):
+                + (self.state[1] >= self.observation_space.shape[1]) or (self.state[1] <= 0) or (self.state[0] < 0):
             obs = self.observation_space[self.state[0], self.state[1]]
             return np.array(obs), rw, self.done, info
 
