@@ -1,7 +1,7 @@
 import numpy as np
-import alg
+#import Greedy_algorithm
 import matplotlib.pyplot as plt
-
+from .Greedy_algorithm import greedy_algorithm_main
 
 class q_learning:
 
@@ -59,12 +59,12 @@ class q_learning:
 
         return np.append(x_s, y_s)
 
-    def episode(self):  # Episode execution for n_iterations
+    def episode(self, angle_constraint = 1.5):  # Episode execution for n_iterations
         self.R = 0
         s = self.initialize_s()
         traj = []
-        angle_constraint = 2
-        gr = alg.greedy_algorithm_main(self.map, angle_constraint = angle_constraint, step_back=3)
+        angle_constraint = angle_constraint
+        gr = greedy_algorithm_main(self.map, angle_constraint = angle_constraint, step_back=3)
 
         for i in range(0, self.n_iterations):
 
@@ -161,12 +161,12 @@ class q_learning:
 
         plt.title('Optimal policy pi*')
 
-    def q_learning_plot(self, start_point=[0, 150]):
+    def q_learning_plot(self, start_point=[0, 150], angle_constraint = 1.5):
         # plotting trajectory
         # no angle constraint taken into account
         traj = [start_point[1]]
         OFV = 0
-        gr = alg.greedy_algorithm_main(self.map, angle_constraint=2, step_back=3)
+        gr = greedy_algorithm_main(self.map, angle_constraint = angle_constraint, step_back = 3)
         angle_constraint = 200
         for i in range(0, self.policy.shape[0] - 1):
 
