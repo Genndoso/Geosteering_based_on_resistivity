@@ -38,7 +38,7 @@ class geosteering_dataset:
         # water saturation
         df_Sw = (df_Sw.iloc[:, 1::2]).astype(float)
         arr_Sw = (np.array(df_Sw)).T
-        self.arr_Sw = arr_Sw[::-1]
+        self.arr_Sw = arr_Sw
 
         # V_shale
         df_Vsh = (df_Vsh.iloc[:, 1::2]).astype(float)
