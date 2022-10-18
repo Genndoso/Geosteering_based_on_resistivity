@@ -17,7 +17,7 @@ class greedy_algorithm_main:
     def tangent_func(self, traj, xVal):
         x = np.arange(0, len(traj))
         interp = greedy_algorithm_main.traj_interpolation
-        degrees = [3, 4, 5, 6]
+        degrees = [3, 4, 5, 6, 10]
         r2_score_base = 0
         for i in degrees:
             y = interp(traj, degree=i)
@@ -28,7 +28,7 @@ class greedy_algorithm_main:
         try:
             y = interp(traj, degree=degr)
         except:
-            y = interp(traj, degree=4)
+            y = interp(traj, degree=10)
         # calculate gradient
         slope = np.gradient(y, x)
 
@@ -120,8 +120,8 @@ class greedy_algorithm_main:
                     traj_points.append(next_point[1])
                     traj[next_point[0], next_point[1]] = 1
                     continue
-
-            next_point = [next_point[0] + self.step_x, next_point[1] + best_candidate[0]]
+            if not greedy_simple:
+              next_point = [next_point[0] + self.step_x, next_point[1] + best_candidate[0]]
 
             # upper boundary constraint
             if next_point[1] >= self.prod_map.shape[1] - self.step_x:
@@ -154,6 +154,9 @@ class greedy_algorithm_main:
 
             traj_points.append(next_point[1])
 
+            # if next_point[0] == self.prod_map.shape[0]:
+            #     pass
+            # else:
             obj_func_val += self.prod_map[next_point[0], next_point[1]]
             traj[next_point[0], next_point[1]] = 1
 
@@ -169,7 +172,7 @@ class greedy_algorithm_main:
         return dt
 
     @staticmethod
-    def visualization(array, *trajectory, plot_inital_traj = True, interpolation=True, scale_x, scale_y):
+    def visualization(array,x_range, *trajectory, plot_initial_traj = True, interpolation=True, scale_x, scale_y):
         fig, ax = plt.subplots()
         fig.set_size_inches(20, 6)
         plt.gca().invert_yaxis()
@@ -177,13 +180,13 @@ class greedy_algorithm_main:
         plt.xlabel('Distance *%1.0f [m]' % scale_x)
         plt.ylabel('Depth 1/%1.0f [m]' % scale_y)
 
-        p_map = plt.imshow(array, cmap='cividis_r', aspect='auto')
+        p_map = plt.imshow(array, cmap='seismic', aspect='auto')
         for traj in trajectory:
-            if plot_inital_traj:
-                plt.plot(traj, linewidth=3)
+            if plot_initial_traj:
+                plt.plot(x_range, traj, linewidth=3)
             if interpolation:
                 dt = greedy_algorithm_main.traj_interpolation(traj)
-                plt.plot(dt, linewidth=3)
+                plt.plot(x_range, dt, linewidth=3, color='black')
         plt.show()
 
     @staticmethod
