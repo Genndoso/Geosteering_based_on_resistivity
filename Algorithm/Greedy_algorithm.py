@@ -161,7 +161,7 @@ class greedy_algorithm_main:
         return traj_points
 
     @staticmethod
-    def traj_interpolation(trajectory, degree=6):
+    def traj_interpolation(trajectory, degree=10):
         # curve interpolation
         d = np.polyfit(np.arange(0, len(trajectory)), trajectory, deg=degree)
         z = np.poly1d(d)
@@ -169,7 +169,7 @@ class greedy_algorithm_main:
         return dt
 
     @staticmethod
-    def visualization(array, *trajectory, interpolation=True, scale_x, scale_y):
+    def visualization(array, *trajectory, plot_inital_traj = True, interpolation=True, scale_x, scale_y):
         fig, ax = plt.subplots()
         fig.set_size_inches(20, 6)
         plt.gca().invert_yaxis()
@@ -178,9 +178,9 @@ class greedy_algorithm_main:
         plt.ylabel('Depth 1/%1.0f [m]' % scale_y)
 
         p_map = plt.imshow(array, cmap='cividis_r', aspect='auto')
-        bar = plt.colorbar(p_map)
         for traj in trajectory:
-            plt.plot(traj, linewidth=3)
+            if plot_inital_traj:
+                plt.plot(traj, linewidth=3)
             if interpolation:
                 dt = greedy_algorithm_main.traj_interpolation(traj)
                 plt.plot(dt, linewidth=3)
