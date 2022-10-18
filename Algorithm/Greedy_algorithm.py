@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 import scipy.interpolate
 import itertools
-
+from scipy.signal import savgol_filter
 
 class greedy_algorithm_main:
     def __init__(self, final_array, angle_constraint=10, step_back=3):
@@ -172,21 +172,22 @@ class greedy_algorithm_main:
         return dt
 
     @staticmethod
-    def visualization(array,x_range, *trajectory, plot_initial_traj = True, interpolation=True, scale_x, scale_y):
+    def visualization(array,x_range, *trajectory, plot_initial_traj = False, interpolation=True, window_size, degree, scale_x, scale_y):
         fig, ax = plt.subplots()
-        fig.set_size_inches(20, 6)
+        fig.set_size_inches(30, 4)
         plt.gca().invert_yaxis()
         plt.title('Productivity potential map')
-        plt.xlabel('Distance *%1.0f [m]' % scale_x)
-        plt.ylabel('Depth 1/%1.0f [m]' % scale_y)
+        plt.xlabel('Distance  [m]')
+        plt.ylabel('Depth  [m]' )
 
-        p_map = plt.imshow(array, cmap='seismic', aspect='auto')
+        p_map = plt.imshow(array, cmap='gist_heat_r', aspect='auto')
+        plt.colorbar(p_map)
         for traj in trajectory:
             if plot_initial_traj:
                 plt.plot(x_range, traj, linewidth=3)
             if interpolation:
-                dt = greedy_algorithm_main.traj_interpolation(traj)
-                plt.plot(x_range, dt, linewidth=3, color='black')
+                d = savgol_filter(traj, window_size, degree)
+                plt.plot(np.array(x_range), d, linewidth=3, color='blue')
         plt.show()
 
     @staticmethod
