@@ -6,7 +6,7 @@ volume_cut = np.random.uniform(0, 10, size=(301, 514, 278))
 
 
 class greedy_geosteering_polar:
-    def __init__(self, map_3d, length=12, angle_constraint_per_m=0.1, steps_ahead=7, start_point=[30, 30, 20],
+    def __init__(self, map_3d, length=12, angle_constraint_per_m=0.1, steps_ahead=3, start_point=[30, 30, 20],
                  init_inclination=86, init_azimut=0,
                  step_incl=0.5, step_azi=0.5,
                  min_azimut=0, max_azimut=270,
@@ -132,7 +132,7 @@ class greedy_geosteering_polar:
     def get_next_step(self, z, step_back=1):
         k = 0
         next_point = [self.traj_x[-1], self.traj_y[-1], self.traj_z[-1]]
-        traj_x_array, traj_y_array, traj_z_array = np.stack([traj_x, traj_y, traj_z])
+        traj_x_array, traj_y_array, traj_z_array = np.stack([self.traj_x, self.traj_y, self.traj_z])
         best_candidate, break_all = self.get_best_candidate(next_point)
         OFV = 0
         break_al = False

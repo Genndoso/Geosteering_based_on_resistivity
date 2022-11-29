@@ -33,4 +33,4 @@ class ReplayBuffer(object):
         next_states = torch.tensor(self.next_state_memory[batch]).to(torch.device('cpu'))
         terminal = torch.tensor(self.terminal_memory[batch]).to(torch.device('cpu'))
 
-        return states, actions, rewards, next_states,
+        return states, actions, rewards, next_states, terminal

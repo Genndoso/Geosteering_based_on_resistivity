@@ -18,11 +18,10 @@ import plotly.graph_objects as go
 
 items = [[-1,1], [-1, -1], [-1,0], [0,0], [0, -1], [0,1], [1,1], [1,0], [1,-1]]
 
-
 class greedy_geosteering_advanced:
-    def __init__(self, map_3d, items, step_z=1, angle_constraint=3, steps_ahead=3, min_azimut=0, max_azimut=360,
-                 min_zenith=80, max_zenith=91):
-
+    def __init__(self, map_3d, items, step_z = 1, angle_constraint = 3, steps_ahead = 3, min_azimut = 0, max_azimut = 360,
+                 min_zenith = 80, max_zenith = 91):
+        
         self.map_3d = map_3d
         self.items = items
         self.step_z = step_z
@@ -32,77 +31,115 @@ class greedy_geosteering_advanced:
         self.max_azimut = max_azimut
         self.angle_constraint = angle_constraint
         self.steps_ahead = steps_ahead
-
+        
     def get_dogleg(self, inc1, azi1, inc2, azi2):
         dogleg = (
-                2 * np.arcsin(
+        2 * np.arcsin(
             (
-                    np.sin((inc2 - inc1) / 2) ** 2
-                    + np.sin(inc1) * np.sin(inc2)
-                    * np.sin((azi2 - azi1) / 2) ** 2
+                np.sin((inc2 - inc1) / 2) ** 2
+                + np.sin(inc1) * np.sin(inc2)
+                * np.sin((azi2 - azi1) / 2) ** 2
             ) ** 0.5
         )
-        )
+    )
         return dogleg
+    
+    def calc_dogleg(self, inc1, inc2, azi1, azi2):
+        """
+        Calculate dogleg between two points
+        :param inc1: inclination at point 1
+        :param inc2: inclination at point 2
+        :param azi1: azimuth at point 1
+        :param azi2: azimuth at point 2
+        :return: dogleg in radians
+        """
 
+        if inc1 == inc2 and azi1 == azi2:
+            dl = 0
+        else:
+            inner_value = np.cos(np.radians(inc1)) * np.cos(np.radians(inc2)) + np.sin(np.radians(inc1)) * np.sin(np.radians(inc2)) * \
+                np.cos(np.radians(azi2 - azi1))
+            if inner_value > 1:
+                inner_value = 1
+            if inner_value < -1:
+                inner_value = -1
+            dl = np.arccos(inner_value)
+        return dl
+    
     def _get_angles(self, traj_x, traj_y, traj_z):
         xz = traj_x ** 2 + traj_z ** 2
         inc = np.arctan2(np.sqrt(xz), traj_y)  # for elevation angle defined from y-axis down
         azi = (np.arctan2(traj_x, traj_z) + (2 * np.pi)) % (2 * np.pi)
 
         return np.stack((inc, azi), axis=1)
-
+    
     def get_best_candidate(self, current_point):
         all_candidates = []
-
-        for item in itertools.product(items, repeat=self.steps_ahead):
+        
+        for item in itertools.product(items, repeat = self.steps_ahead):
             all_candidates.append(list(item))
-
+        
         best_candidate = all_candidates[0]
         cand_point = current_point
         OFV_best = 0
 
+        dls = 0
+                        
         if cand_point[0] < (self.map_3d.shape[0] - self.steps_ahead) and \
-                (cand_point[1] < self.map_3d.shape[1] - self.steps_ahead) and (
-                cand_point[2] < self.map_3d.shape[2] - self.step_z - self.steps_ahead):
-            for l in range(0, len(all_candidates)):
-                #   obtain OFV of all possible candidates
-                OFV = 0
-                cand_point = current_point
-                for v in range(0, len(all_candidates[1])):
+            (cand_point[1] < self.map_3d.shape[1] - self.steps_ahead) and (cand_point[2] < self.map_3d.shape[2] - self.step_z - self.steps_ahead):
+                for l in range(0, len(all_candidates)):
+                     #   obtain OFV of all possible candidates
+                        OFV = 0
+                        cand_point = current_point
+                        cand_point_x = [current_point[0]]
+                        cand_point_y = [current_point[1]]
+                        cand_point_z = [current_point[2]]
+                        dls = 0
+                        for v in range(0, len(all_candidates[1])):
 
-                    cand_point = [cand_point[0] + all_candidates[l][v][0],
-                                  cand_point[1] + all_candidates[l][v][1], cand_point[2] + 1]
-                    if l == 0:
-                        OFV_best += self.map_3d[cand_point[0], cand_point[1], cand_point[2]]
-                    else:
-                        OFV += self.map_3d[cand_point[0], cand_point[1], cand_point[2]]
+                            cand_point = [cand_point[0] + all_candidates[l][v][0] , 
+                                          cand_point[1] + all_candidates[l][v][1], cand_point[2] + 1]
+                            
+                            cand_point_x.append(cand_point[0])
+                            cand_point_y.append(cand_point[1])
+                            cand_point_z.append(cand_point[2])
+                            
+                            cand_point_x_arr, cand_point_y_arr, cand_point_z_arr = np.array(cand_point_x),\
+                            np.array(cand_point_y), np.array(cand_point_z)
+                            if len(all_candidates[1]) > 1 and v > 1:
+                                angles = self._get_angles(cand_point_x_arr, cand_point_y_arr, cand_point_z_arr)
+                                incl1, az1 = angles[-1]
+                                incl2, az2 = angles[-2]
+                                dls = self.calc_dogleg(incl1, incl2, az1, az2)
+                                
+                                
+                            if l == 0:
+                                OFV_best += self.map_3d[cand_point[0], cand_point[1], cand_point[2]]/ \
+                                np.linalg.norm([cand_point_x, cand_point_y, cand_point_z]) - dls*10
+                            else:
+                                OFV += self.map_3d[cand_point[0], cand_point[1], cand_point[2]]/ \
+                                np.linalg.norm([cand_point_x, cand_point_y, cand_point_z]) - dls*10
 
-                if OFV > OFV_best:
-                    best_candidate = all_candidates[l]
-                    OFV_best = OFV
+                        if OFV > OFV_best:
+                            best_candidate = all_candidates[l]
+                            OFV_best = OFV
         return best_candidate
-
-    def get_next_step(self, traj_x, traj_y, traj_z, z, dx=0, dy=0, step_back=1):
+    
+    def get_next_step(self, traj_x, traj_y, traj_z, z, dx = 0, dy = 0, step_back = 1):
         k = 0
         next_point = [traj_x[-1], traj_y[-1], traj_z[-1]]
-
+        
         traj_x_array, traj_y_array, traj_z_array = np.stack([traj_x, traj_y, traj_z])
         angles = self._get_angles(traj_x_array, traj_y_array, traj_z_array)
-
+        
         best_candidate = self.get_best_candidate(next_point)
         #  Calculate DogLeg
         if z >= step_back:
-            incl2, az2 = angles[-step_back - 1]
-        elif z >= 1 and z < step_back:
-            incl2, az2 = angles[-1 - 1]
-
-        incl1, az1 = angles[-1]
-
-        if z > 1:
-            dogleg = self.get_dogleg(incl1, az1, incl2, az2)
-            print(z, np.degrees(incl2), np.degrees(dogleg), (np.degrees(az1)))
-
+            incl1, az1 = angles[-1]
+            incl2, az2 = angles[-step_back]
+            
+            dogleg = self.calc_dogleg(incl1, az1, incl2, az2)
+            
             if np.degrees(dogleg) >= self.angle_constraint:
                 next_step = [dx, dy, self.step_z]
                 k = 1
@@ -110,10 +147,11 @@ class greedy_geosteering_advanced:
                 next_step = [0, 0, self.step_z]
                 k = 1
 
+            print(np.degrees(incl2), np.degrees(az2))
         if k != 1:
-
-            next_step = [best_candidate[0][0], best_candidate[0][1], self.step_z]
-
+                #print("best_cand")
+                next_step = [best_candidate[0][0], best_candidate[0][1], self.step_z]
+                
         # upper boundary x,y constraint
         if next_point[0] >= self.map_3d.shape[0] - self.step_z:
             if next_point[1] >= self.map_3d.shape[1] - self.step_z:
@@ -122,7 +160,8 @@ class greedy_geosteering_advanced:
                 next_step = [-self.step_x, 0, self.step_z]
             else:
                 next_step = [0, 0, self.step_z]
-
+               
+           
         # lower boundary x,x constraint
         if next_point[0] <= self.step_z:
             if next_point[1] >= self.map_3d.shape[1] - self.step_z:
@@ -131,24 +170,26 @@ class greedy_geosteering_advanced:
                 next_step = [0, 0, self.step_z]
             else:
                 next_step = [0, 0, self.step_z]
-
+                    
+                       
         # upper boundary y,x constraint
-        if next_point[1] >= self.map_3d.shape[1] - self.step_z:
+        if next_point[1] >= self.map_3d.shape[1] - self.step_z:       
             if next_point[0] >= self.map_3d.shape[0] - self.step_z:
-                next_step = [-self.step_x, - self.step_x, self.step_z]
-            else:
+                next_step = [-self.step_x, - self.step_x, self.step_z] 
+            else: 
                 next_step = [0, - self.step_x, self.step_z]
-
+                 
             # lower boundary y,x constraint
         if next_point[1] <= self.step_z:
             if next_point[0] >= self.map_3d.shape[0] - self.step_z:
                 next_step = [-self.step_x, 0, self.step_z]
             else:
                 next_step = [0, 0, self.step_z]
-
+                
         return next_step
-
-    def traj_planning(self, start_point, step_back=10):
+                
+            
+    def traj_planning(self, start_point, step_back = 10):
         OFV = 0
         next_point = start_point
         traj_x = [start_point[0]]
@@ -157,26 +198,40 @@ class greedy_geosteering_advanced:
         greedy_simple = False
         dx = 0
         dy = 0
-
-        for z in range(0, self.map_3d.shape[2] - self.steps_ahead - start_point[2] - self.step_z, self.step_z):
-            next_step = self.get_next_step(traj_x, traj_y, traj_z, dx=0, dy=0, z=z, step_back=step_back)
-
-            next_point = [next_point[0] + next_step[0], next_point[1] + next_step[1], next_point[2] + next_step[2]]
-
+        
+        
+        for z in range(0, self.map_3d.shape[2] - step_back, self.step_z):
+            next_step = self.get_next_step(traj_x, traj_y, traj_z, dx = dx, dy = dy, z = z, step_back = step_back)
+            
+            next_point = [next_point[0] + next_step[0], next_point[1] + next_step[1], next_point[2] + next_step[2]] 
+           
+            
+            
+            
+            
             if z > 0:
-                dx = next_point[0] - next_point_prev[0]
+                dx = next_point[0] - next_point_prev[0] 
                 dy = next_point[1] - next_point_prev[1]
             OFV += self.map_3d[next_point[0], next_point[1], next_point[2]]
             next_point_prev = next_point
-            traj_x.append(next_point[0])
-            traj_y.append(next_point[1])
-            traj_z.append(next_point[2])
-
+            if z <= 10:
+                
+                traj_x.append(start_point[0])
+                traj_y.append(start_point[1])
+                traj_z.append(start_point[2] + 1)
+            else:
+                traj_x.append(next_point[0])
+                traj_y.append(next_point[1])
+                traj_z.append(next_point[2])
+                
+            
+           
         print('OFV =', np.round(OFV, 2))
         return np.stack([traj_x, traj_y, traj_z])
-
+    
+    
     @staticmethod
-    def trajectory_visualization(traj_x, traj_y, traj_z, color='red', width=7):
+    def trajectory_visualization(traj_x, traj_y, traj_z, color = 'red', width = 7):
         fig = go.Figure()
 
         fig.add_trace(
@@ -186,8 +241,8 @@ class greedy_geosteering_advanced:
                 z=traj_y,
                 mode='lines',
                 line=dict(
-                    color=color,
-                    width=width
+                    color= color,
+                    width= width
                 ),
                 name='survey_interpolated'
             ),
@@ -201,7 +256,12 @@ class greedy_geosteering_advanced:
 
         fig.update_scenes(zaxis_autorange="reversed")
         fig.show()
-
+        
+        
+        
+    
+    
+    
 
 
 
