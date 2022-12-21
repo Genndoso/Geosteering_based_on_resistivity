@@ -3,7 +3,7 @@ from scipy.interpolate import interpn
 
 import itertools
 volume_cut = np.random.uniform(0, 10, size=(301, 514, 278))
-
+import plotly.graph_objects as go
 
 class greedy_geosteering_polar:
     def __init__(self, map_3d, length=12, angle_constraint_per_m=0.1, steps_ahead=3, start_point=[30, 30, 20],
@@ -149,17 +149,17 @@ class greedy_geosteering_polar:
 
             # limit zenith angle
             if incl2 >= self.max_zenith:
-                next_incl_diff = - self.step_incl
+                next_incl_diff = 0
             elif incl2 <= self.min_zenith:
-                next_incl_diff = + self.step_incl
+                next_incl_diff = 0
             else:
                 next_incl_diff = best_candidate[0][0]
 
             # limith azimut angle
             if azi2 >= self.max_azimut:
-                next_azi_diff = -self.step_azimut
+                next_azi_diff = 0
             elif azi2 <= self.min_azimut:
-                next_azi_diff = self.step_azimut
+                next_azi_diff = 0
             else:
                 next_azi_diff = best_candidate[0][1]
 
@@ -233,6 +233,31 @@ class greedy_geosteering_polar:
         self.azi_l = [init_azimut]
 
 
+def plot_3d_traj(traj_x, traj_y, traj_z, animation=True):
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter3d(
+            x=traj_x,
+            y=traj_z,
+            z=traj_y,
+            mode='lines',
+            line=dict(
+                color='red',
+                width=7
+            ),
+            name='survey_interpolated'
+        ),
+    )
+    fig.update_layout(scene=dict(
+        #  xaxis_title='X AXIS TITLE',
+        yaxis_title='Drilling direction',
+        zaxis_title='True vertical depth (TVD)'),
+        width=700,
+        margin=dict(r=20, b=10, l=10, t=10))
+
+    fig.update_scenes(zaxis_autorange="reversed")
+    fig.show()
 
 
 

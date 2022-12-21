@@ -22,7 +22,7 @@ class Agent:
         #   self.loss = nn.MSELoss()
         self.memory = ReplayBuffer(mem_size, n_states)
 
-        self.Q_eval = DeepQNetwork(lr=lr ,out_dims=n_actions ,input_dims=n_states,
+        self.Q_eval = DeepQNetwork(lr = lr ,out_dims=n_actions ,input_dims=n_states,
                                    name=env_name +'.pth', saved_dir=saved_dir,
                                    hid_dim = 128)
         self.Q_next = DeepQNetwork(lr=lr ,out_dims=n_actions ,input_dims=n_states,

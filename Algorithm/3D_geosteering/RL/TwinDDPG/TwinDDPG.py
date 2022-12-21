@@ -38,7 +38,6 @@ class Actor(nn.Module):
         return action.detach().cpu().numpy()  # [0, 0]
 
 
-
 class Critic(nn.Module):
 
     def __init__(self, num_inputs, action_space, hidden_size):
