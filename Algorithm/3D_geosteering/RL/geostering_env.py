@@ -1,102 +1,64 @@
-import itertools
-import torch
-from torch import nn
-import gym
 from gym.spaces import Discrete, Box
 from gym import Env
-from scipy.interpolate import interpn
 import os
 import numpy as np
 from scipy.interpolate import interpn
 import matplotlib.pyplot as plt
 
+
+class ObservationGeosteering():
+    def __init__(self):
+        self.shape = (6,)
+
+
+class ActionSpaceGeosteering():
+    def __init__(self):
+        self.shape = (2,)
+        self.action_space = Box(low = np.array([0, -20]), high = np.array([90, 180]), shape=(2,))
+
+
 class Geosteering_env(Env):
     def __init__(self,  prod_map: np.array, start_point=[0, 20, 20], init_azimut = 0, init_inclination = 0,
-                 length = 10, step_incl = 1, step_azimuth = 2, angle_constraint_per_m = 1,
-                 random_start_point = False, steps_cube_ahead = 10
+                 length = 10, angle_constraint_per_m = 1,
+                 random_start_point = False, random_angles = False, steps_cube_ahead = 10
                  ):
-        self.action_space = Discrete(9)
+        self.action_space = Box(low = np.array([0, -20]), high = np.array([90, 180]), shape=(2,))
+        self.observation_space = ObservationGeosteering()
         self.length = length
         self.prod_map = prod_map
         self.rew_sum = 0
         self.start_point = start_point
         self.steps_cube_ahead = steps_cube_ahead
         if random_start_point:
-            self.state = [np.random.randint(20, self.prod_map.shape[0] - 10), np.random.randint(20, self.prod_map.shape[1]), start_point[2]]
+            self.pos_state = [np.random.randint(20, self.prod_map.shape[0] - 30), np.random.randint(30, self.prod_map.shape[1]) - 30, np.random.randint(30, self.prod_map.shape[2]) - 30]
         else:
-            self.state = self.start_point
+            self.pos_state = self.start_point
 
         # observation is our current position plus some cube part
         cube_part = (self.prod_map[self.start_point[0]:self.start_point[0] + self.steps_cube_ahead,
                     self.start_point[1]: self.start_point[1] + self.steps_cube_ahead,
                     self.start_point[2]: self.start_point[2] + self.steps_cube_ahead]).flatten()
 
-        self.observation = np.hstack((np.array(self.state), cube_part))
-        self.traj = [self.state]
-        self.step_incl = step_incl
-        self.step_azimuth = step_azimuth
-        self.incl_l = [init_inclination]
-        self.azi_l = [init_azimut]
+        self.observation = np.hstack((np.array(self.pos_state), cube_part))
+
+        if random_angles:
+            self.incl_l = [np.random.randint(0, 90)]
+            self.azi_l = [np.random.randint(0, 180)]
+        else:
+            self.incl_l = [init_inclination]
+            self.azi_l = [init_azimut]
         self.angle_constraint = angle_constraint_per_m
         self.plotting_R = []
         self.random_start_point = random_start_point
         print('Environment initialized')
         self.done = False
 
-        self.items = [[-self.step_incl, self.step_azimuth], [-self.step_incl, -self.step_azimuth], [-self.step_incl, 0], [0 ,0],
-                      [0, -self.step_azimuth], [0, self.step_azimuth],
-                      [self.step_incl, self.step_azimuth], [self.step_incl, 0], [self.step_incl, -self.step_azimuth]]
-
         self.x = np.linspace(0, self.prod_map.shape[0] - 1, self.prod_map.shape[0])
         self.y = np.linspace(0, self.prod_map.shape[1] - 1, self.prod_map.shape[1])
         self.z = np.linspace(0, self.prod_map.shape[2] - 1, self.prod_map.shape[2])
         self.points = (self.x, self.y, self.z)
 
-
-    def _get_action(self, action):
-        act = self.items[action]
-        self.incl_l.append(self.incl_l[-1] + act[0])
-        self.azi_l.append(self.azi_l[-1] + act[1])
-
-        self.vec_diff = self.get_vec(self.incl_l[-1], self.azi_l[-1])
-        self.state = [self.state[0] + self.vec_diff[0], self.state[1] + self.vec_diff[1], self.state[2] + self.vec_diff[2]]
-        return act
-
-    def _reward(self):
-        # define reward function which is based on the angle constraint and
-        # productivity potential
-        penalty = 0
-        k = 0
-        OFV = 0
-        if len(self.incl_l) > 3:
-            incl2 = self.incl_l[-1]
-            azi2 = self.azi_l[-1]
-            incl1 = self.incl_l[-2]
-            azi1 = self.azi_l[-2]
-            dls_val = np.linalg.norm(incl1 - incl2) + np.linalg.norm(azi1 - azi2)
-            if dls_val >= self.angle_constraint * self.length:
-                penalty += dls_val
-
-
-        if (self.state[0] >= self.prod_map.shape[0] - 30) or (self.state[0] <= 20) or \
-                (self.state[1] >= self.prod_map.shape[1] - 30) or (self.state[1] <= 20) or \
-                (self.state[2] >= self.prod_map.shape[2] - 30) or (self.state[2] <= 20):
-            self.done = True
-            penalty += 10
-
-        # productivity potential at this point normalized be step size dogleg severity
-        if len(self.incl_l) < 4:
-            OFV = interpn(self.points, self.prod_map, self.state, method = 'nearest') / np.linalg.norm(self.vec_diff)
-        else:
-            OFV = interpn(self.points, self.prod_map, self.state, method = 'nearest') / np.linalg.norm(self.vec_diff) #- dls_val * 10
-        reward = OFV - penalty
-
-        # if len(self.incl_l) > 3:
-        #     print(dls_val, OFV)
-
-
-        self.traj.append(self.state)
-        return reward
+        self.state = np.array([self.pos_state[0], self.pos_state[1], self.pos_state[2], self.incl_l[-1], self.azi_l[-1], self.angle_constraint])
 
     def get_vec(self, inc, azi, nev=False, deg=True):
         """
@@ -127,6 +89,33 @@ class Geosteering_env(Env):
         return np.stack([x, y, z])
 
 
+    def _step_reward(self, incl, azi):
+
+        penalty = 0
+        vec_diff = self.get_vec(incl, azi)
+
+        state_new = np.array([self.state[0] + vec_diff[0], self.state[1] + vec_diff[1], self.state[2] + vec_diff[2], self.incl_l[-1], self.azi_l[-1], self.angle_constraint])
+        state_interp = [state_new[0], state_new[1], state_new[2]]
+        # dogleg severity constraint
+        if len(self.incl_l) > 3:
+            dls_val = np.linalg.norm(incl - self.state[3]) + np.linalg.norm(azi - self.state[4])
+            if dls_val >= self.angle_constraint * self.length:
+                penalty += dls_val * 0.01
+
+        # constraint for high length action
+        length_constraint = np.linalg.norm(vec_diff)
+        # get productivity potential
+        OFV = interpn(self.points, self.prod_map, state_interp, method='nearest') * 10 / length_constraint
+
+        # get the longest axis
+        axis_idx = np.array([self.prod_map.shape[0], self.prod_map.shape[1], self.prod_map.shape[2]]).argmax()
+        # reward for approaching right border of the cube
+      #  length_rew = 1 - (self.prod_map.shape[axis_idx] - state_new[axis_idx] / self.prod_map.shape[axis_idx] )
+
+       # print(OFV, penalty, length_constraint)
+        step_rew = (OFV - penalty) * 0.01 #length_rew)*0.01
+        return step_rew, state_new
+
     def step(self, action):
         """Run one timestep of the environment's dynamics.
             When end of episode is reached, you are responsible for calling :meth:`reset` to reset this environment's state.
@@ -139,19 +128,28 @@ class Geosteering_env(Env):
         """
         self.done = False
         info = {}
-        act = self._get_action(action)
+        rw = 0
 
-        rw = self._reward()
+        if (self.state[0] >= self.prod_map.shape[0] - 20) or (self.state[0] <= 20) or \
+                (self.state[1] >= self.prod_map.shape[1] - 20) or (self.state[1] <= 20) or \
+                (self.state[2] >= self.prod_map.shape[2] - 20) or (self.state[2] <= 20):
+            self.done = True
+            rw -= np.array([10])
+        if not self.done:
+            rw, self.state = self._step_reward(action[0], action[1])
+
+        self.incl_l.append(action[0])
+        self.azi_l.append(action[1])
 
         #append plotting reward
         self.plotting_R.append(rw)
 
-        cube_part = (self.prod_map[int(self.state[0]):int(self.state[0]) + self.steps_cube_ahead,
-                     int(self.state[1]): int(self.state[1]) + self.steps_cube_ahead,
-                     int(self.state[2]): int(self.state[2]) + self.steps_cube_ahead]).flatten()
-
-        self.observation = np.hstack((np.array(self.state), cube_part))
-        return self.observation, rw, self.done, info
+        # cube_part = (self.prod_map[int(self.state[0]):int(self.state[0]) + self.steps_cube_ahead,
+        #              int(self.state[1]): int(self.state[1]) + self.steps_cube_ahead,
+        #              int(self.state[2]): int(self.state[2]) + self.steps_cube_ahead]).flatten()
+        #
+        # self.observation = np.hstack((np.array(self.state), cube_part))
+        return self.state, rw, self.done, info
 
     def render(self, action, rw, step):
         """Compute the render frames as specified by render_mode attribute during initialization of the environment.
@@ -159,7 +157,6 @@ class Geosteering_env(Env):
         plt.style.use('seaborn')
         fig, ax = plt.subplots(1,1, figsize = (20,10))
         plt.plot(self.plotting_R, color = 'r')
-
 
     def reset(self, init_azimut=0, init_inclination=0):
         """Resets the environment to an initial state and returns the initial observation.
@@ -171,19 +168,21 @@ class Geosteering_env(Env):
         """
         self.rew_sum = 0
         if self.random_start_point:
-            self.state = [np.random.randint(20, self.prod_map.shape[0] - 10), np.random.randint(20, self.prod_map.shape[1]),
+            self.pos_state = [np.random.randint(20, self.prod_map.shape[0] - 10), np.random.randint(20, self.prod_map.shape[1]),
                           np.random.randint(20, self.prod_map.shape[2] - 10)]
         else:
-            self.state = self.start_point
+            self.pos_state = self.start_point
         self.traj = [self.state]
         self.incl_l = [init_inclination]
         self.azi_l = [init_azimut]
         self.traj = [self.state[1]]
 
-        cube_part = (self.prod_map[self.state[0]:self.state[0] + self.steps_cube_ahead,
-                     self.state[1]: self.state[1] + self.steps_cube_ahead,
-                     self.state[2]: self.state[2] + self.steps_cube_ahead]).flatten()
+        # cube_part = (self.prod_map[self.state[0]:self.state[0] + self.steps_cube_ahead,
+        #              self.state[1]: self.state[1] + self.steps_cube_ahead,
+        #              self.state[2]: self.state[2] + self.steps_cube_ahead]).flatten()
+        #
+        # self.observation = np.hstack((np.array(self.state), cube_part))
 
-        self.observation = np.hstack((np.array(self.state), cube_part))
-
-        return self.observation
+        self.state = np.array([self.pos_state[0], self.pos_state[1], self.pos_state[2], self.incl_l[-1], self.azi_l[-1], self.angle_constraint])
+        done = False
+        return self.state, done
