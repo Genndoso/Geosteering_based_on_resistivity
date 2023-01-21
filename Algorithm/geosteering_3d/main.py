@@ -32,6 +32,8 @@ def main():
                                          bounds=[args.azimuth_bounds, args.zenith_bounds], \
                             length = args.length, init_pos = args.init_pos)
 
+        print('Final sum of objective function', OFV)
+
 
 
 if __name__ == '__main__':
