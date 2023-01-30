@@ -4,6 +4,13 @@ Created on Sun Jan 29 18:25:09 2023
 
 @author: Максимилиан
 """
+'''
+How to upload large file
+when starting the server use --server.maxUploadSize=10000
+'''
+
+
+
 import streamlit as st
 import pickle
 st.write("Geosteering based on resistivity")
