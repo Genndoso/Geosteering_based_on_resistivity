@@ -9,28 +9,92 @@ import streamlit as st
 
 from PIL import Image
 import os
-from   pathlib import Path
+from  pathlib import Path
 import pandas as pd
+import pickle
+from main_code.upload_file import save_uploadedfile, upload_selected_file
+from main_code.file_selector import file_selector
+#####################################################################################################################
+# #load mages for examples
+# XY_path = str(Path.joinpath(Path(os.getcwd()).parent, Path("data") / "images/2D_XY.PNG"))
+# XY_image = Image.open(XY_path)
+#
+#
+# YZ_path = str(Path.joinpath(Path(os.getcwd()).parent, Path("data") / "images/2D_ZY.PNG"))
+# YZ_image = Image.open(YZ_path)
+#
+#
+# XZ_path = str(Path.joinpath(Path(os.getcwd()).parent, Path("data") / "images/2D_XZ.PNG"))
+# XZ_image = Image.open(XZ_path)
 
 #####################################################################################################################
+folder_path = os.path.join("data/raw/")
 
-
-st.markdown("<h1 style='text-align: center; color: black;'>RTFE web application</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: black;'> Real time formation evaluation based on resistivity</h1>", unsafe_allow_html=True)
 
 ##################################################################################################################### 
-st.sidebar.subheader('Uplod data:')
-uploaded_file = st.sidebar.file_uploader('Specify the path to the LWD data:')
-if uploaded_file is not None:
-    # To read file as bytes:
-    bytes_data = uploaded_file.getvalue()
-    st.sidebar.write(bytes_data)
+st.markdown(' **Upload or select existing data:**')
+type_of_use = st.radio('', ['Upload file', 'Select from existing'])
+
+if type_of_use == 'Upload file':
+    uploaded_file = st.file_uploader('Specify the path to the LWD data:')
+    if uploaded_file is not None:
+        file = pickle.load(uploaded_file)
+        save_uploadedfile(uploaded_file)
+
+elif type_of_use == 'Select from existing':
+
+    path = file_selector(folder_path)
+    file = upload_selected_file(path)
+
+
 
 st.sidebar.subheader('Data visualization:')
 if st.sidebar.button('PLot LWD data'):
     st.subheader('Data visualization')
-    image_path = str(Path.joinpath(Path(os.getcwd()).parent, Path("figs") / "3D_resistivity.PNG"))
-    MW_image = Image.open(image_path)
-    st.image(MW_image)
+    
+    vis_type = st.selectbox("Choose type of plotting:", [ "2D",
+                                                          "3D"])
+    
+    if vis_type == "2D":
+        
+        x_y_z_vis = st.selectbox("Choose a plane for plotting:", [  "X-Y",
+                                                                    "Y-Z",
+                                                                    "X-Z"])
+        
+        column1, column2 = st.columns([1, 4])
+        
+        if x_y_z_vis == "X-Y":          
+            # Add slider to column 1
+            slider = column1.slider("Slice # along X-Y plane", min_value=0, max_value=400, value=1)
+            # Add plot to column 2
+            column2.image(XY_image, width=500)
+        
+        elif x_y_z_vis == "Y-Z":
+            # Add slider to column 1
+            slider = column1.slider("Slice # along Y-Z plane", min_value=0, max_value=1000, value=1)
+            # Add plot to column 2
+            column2.image(YZ_image, width=500)
+            
+        elif x_y_z_vis == "X-Z":          
+            # Add slider to column 1
+            slider = column1.slider("Slice # along Y-Z plane", min_value=0, max_value=400, value=1)
+            # Add plot to column 2
+            column2.image(XZ_image, width=500)
+       
+    elif vis_type == "3D":     
+        # Create two columns
+        column1, column2 = st.columns([1, 4])
+        
+        # Add sliders to column 1
+        slider1 = column1.slider("Slice along X-Y plane", min_value=0, max_value=400, value=1)
+        slider2 = column1.slider("Slice along Y-Z axis", min_value=0, max_value=1000, value=1)
+        slider3 = column1.slider("Slice along X-Z axis", min_value=0, max_value=400, value=1)
+        
+        # Add plot to column 2
+        image_path = str(Path.joinpath(Path(os.getcwd()).parent, Path("figs") / "3D_resistivity.PNG"))
+        image = Image.open(image_path)
+        column2.image(image, width=500)
 else:
     st.sidebar.write('')   
     
