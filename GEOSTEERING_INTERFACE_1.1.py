@@ -4,7 +4,7 @@ Created on Wed Nov 16 12:39:42 2022
 
 @author: georgy.peshkov
 """
-
+import matplotlib.pyplot as plt
 import streamlit as st
 from pathlib import Path
 from PIL import Image
@@ -15,26 +15,20 @@ import pandas as pd
 import pickle
 from streamlit_app.main_code.upload_file import save_uploadedfile, upload_selected_file
 from streamlit_app.main_code.file_selector import file_selector
-from streamlit_app.main_code.visualize import visualize_cube
+from streamlit_app.main_code.visualize import visualize_cube, vis_2d
 
 from Algorithm.geosteering_3d.differential_evolution.diff_evolution import DE_algo, plot_results
 
+def callback():
+    st.session_state.button_clicked = True
+    st.session_state.vis_type = '3D'
+    st.session_state.vis_type = '3D'
+    st.session_state.projection = 'X-Y'
+
+def handle_slider(val):
+    st.session_state.opacity_slider = val
 
 
-
-#####################################################################################################################
-# #load mages for examples
-# XY_path = str(Path.joinpath(Path(os.getcwd()).parent, Path("data") / "images/2D_XY.PNG"))
-# XY_image = Image.open(XY_path)
-#
-#
-# YZ_path = str(Path.joinpath(Path(os.getcwd()).parent, Path("data") / "images/2D_ZY.PNG"))
-# YZ_image = Image.open(YZ_path)
-#
-#
-# XZ_path = str(Path.joinpath(Path(os.getcwd()).parent, Path("data") / "images/2D_XZ.PNG"))
-# XZ_image = Image.open(XZ_path)
-#st.write(Path(os.getcwd()))
 #####################################################################################################################
 folder_path = str(Path("streamlit_app/data/raw"))
 
@@ -42,40 +36,81 @@ st.markdown("<h1 style='text-align: center; color: black;'> Real time formation 
 
 ##################################################################################################################### 
 st.markdown(' **Upload or select existing data:**')
-type_of_use = st.radio('', ['Upload file', 'Select from existing'])
-st.session_state.counter = 0
+type_of_use = st.sidebar.radio('', ['Upload file', 'Select from existing'])
+
+
+st.write(st.session_state)
+
 if type_of_use == 'Upload file':
-    uploaded_file = st.file_uploader('Specify the path to the LWD data:')
+    uploaded_file = st.sidebar.file_uploader('Specify the path to the LWD data:')
     if uploaded_file is not None:
-        file = pickle.load(uploaded_file)
+        st.session_state.file = pickle.load(uploaded_file)
         save_uploadedfile(uploaded_file)
 
 elif type_of_use == 'Select from existing':
 
     path = file_selector(folder_path)
     st.session_state['file_path'] = path
-    file = upload_selected_file(st.session_state['file_path'])
-
+    st.session_state.file = upload_selected_file(st.session_state['file_path'])
+    st.success("Dataset {} is successfully loaded".format((path.split('/')[-1])))
 
 st.sidebar.subheader('Data visualization:')
-plotter = st.sidebar.button('PLot LWD data', disabled= False)
-if plotter :
-    try:
+st.session_state['plot_button'] = st.sidebar.button('PLot LWD data', disabled= False, on_click= callback)
+if st.session_state.button_clicked:
+
         st.sidebar.subheader('Data visualization')
+        st.session_state['vis_type'] = st.radio("Choose type of plotting:", ["2D", "3D"], on_change = callback)
+        if st.session_state['vis_type'] == "2D":
+        ############################################################
 
-        vis_type = st.radio("Choose type of plotting:", ["2D", "3D"])
-        st.session_state.counter += 1
-        if vis_type == "2D":
-             slider = st.slider("Slice # along X-Y plane", min_value=0.0, max_value=1.0, step=0.1)
-             st.write(slider)
+            st.session_state.file = upload_selected_file(st.session_state['file_path'])
 
-        elif vis_type == "3D":
-            file = upload_selected_file(st.session_state['file_path'])
-            visualize_cube(file, opacity = 1)
-    except:
-        st.write('Upload data file')
+            st.session_state.projection = st.selectbox("Choose a plane for plotting:", ["X-Y",
+                                                                      "Y-Z",
+                                                                      "X-Z"], on_change=callback)
+
+            column1, column2 = st.columns([1, 4])
+
+            if st.session_state.projection == "X-Y":
+                # Add slider to column 1
+                slider = column1.slider("Slice # along X-Y plane", min_value=0, max_value=st.session_state.file.shape[2],
+                                      on_change=callback, value=1)
+                # Add plot to column 2
+                fig, ax = plt.subplots(1, 1)
+                ax = plt.imshow(st.session_state.file[:, :, slider])
+                st.pyplot(fig)
+
+            elif st.session_state.projection == "Y-Z":
+                # Add slider to column 1
+                slider = column1.slider("Slice # along Y-Z plane", min_value=0,
+                                        on_change=callback, max_value=st.session_state.file.shape[0], value=1)
+                # Add plot to column 2
+                fig, ax = plt.subplots(1, 1)
+                ax = plt.imshow(st.session_state.file[slider, :, :])
+                st.pyplot(fig)
+
+            elif st.session_state.projection == "X-Z":
+                # Add slider to column 1
+                slider = column1.slider("Slice # along Y-Z plane", min_value=0,
+                                        on_change=callback, max_value=st.session_state.file.shape[1], value=1)
+                # Add plot to column 2
+                fig, ax = plt.subplots(1,1)
+                ax = plt.imshow(st.session_state.file[slider, :, :])
+                st.pyplot(fig)
+
+
+        #################################################################################
+
+        elif st.session_state['vis_type'] == "3D":
+            op_slider = st.slider("Opacity", min_value=0.0, max_value=1.0, value=0.5, step=0.1,
+                                  key='opacity_slider')
+
+            st.session_state.file = upload_selected_file(st.session_state['file_path'])
+            visualize_cube(st.session_state.file, opacity = op_slider)
+
+    #    st.write('Upload data file')
 else:
-    st.sidebar.write('')   
+    st.sidebar.write('')
     
 ##################################################################################################################### 
 st.sidebar.subheader('Well trajectory planning parameters:')       

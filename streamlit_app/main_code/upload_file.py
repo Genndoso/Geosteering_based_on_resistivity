@@ -11,5 +11,4 @@ def save_uploadedfile(uploadedfile):
 def upload_selected_file(path):
     with open(os.path.join(path),"rb") as f:
         file = pickle.load(f)
-    st.success("Dataset {} is successfully loaded".format((path.split('/')[-1])))
     return file

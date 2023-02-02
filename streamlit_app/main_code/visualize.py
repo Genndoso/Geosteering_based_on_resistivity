@@ -4,7 +4,7 @@ import streamlit as st
 import pyvista as pv
 from stpyvista import stpyvista
 pv.global_theme.show_scalar_bar = False
-
+import matplotlib.pyplot as plt
 
 def visualize_cube(volume_cut, opacity):
     grid = pv.UniformGrid()
@@ -32,7 +32,7 @@ def visualize_cube(volume_cut, opacity):
     stpyvista(plotter, key="pv_cube")
 
 
-def vis_2d():
+def vis_2d(file):
     x_y_z_vis = st.selectbox("Choose a plane for plotting:", ["X-Y",
                                                               "Y-Z",
                                                               "X-Z"])
@@ -41,20 +41,23 @@ def vis_2d():
 
     if x_y_z_vis == "X-Y":
         # Add slider to column 1
-        slider = column1.slider("Slice # along X-Y plane", min_value=0, max_value=400, value=1)
+        slider = column1.slider("Slice # along X-Y plane", min_value=0, max_value=file.shape[2], value=1)
         # Add plot to column 2
-        column2.image(XY_image, width=500)
+        fig = plt.imshow(file[:, :, slider])
+        st.pyplot(fig)
 
     elif x_y_z_vis == "Y-Z":
         # Add slider to column 1
-        slider = column1.slider("Slice # along Y-Z plane", min_value=0, max_value=1000, value=1)
+        slider = column1.slider("Slice # along Y-Z plane", min_value=0, max_value=file.shape[0], value=1)
         # Add plot to column 2
-        column2.image(YZ_image, width=500)
+        fig = plt.imshow(file[slider, :,:])
+        st.pyplot(fig)
 
     elif x_y_z_vis == "X-Z":
         # Add slider to column 1
-        slider = column1.slider("Slice # along Y-Z plane", min_value=0, max_value=400, value=1)
+        slider = column1.slider("Slice # along Y-Z plane", min_value=0, max_value=file.shape[1], value=1)
         # Add plot to column 2
-        column2.image(XZ_image, width=500)
+        fig = plt.imshow(file[slider, :, :])
+        st.pyplot(fig)
 
 
