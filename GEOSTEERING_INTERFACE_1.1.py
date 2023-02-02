@@ -10,7 +10,6 @@ from pathlib import Path
 from PIL import Image
 import os
 #os.chdir(Path(os.getcwd()).parent)
-print(os.getcwd())
 import pandas as pd
 import pickle
 from streamlit_app.main_code.upload_file import save_uploadedfile, upload_selected_file
@@ -18,6 +17,13 @@ from streamlit_app.main_code.file_selector import file_selector
 from streamlit_app.main_code.visualize import visualize_cube, vis_2d
 
 from Algorithm.geosteering_3d.differential_evolution.diff_evolution import DE_algo, plot_results
+
+if 'button_clicked_data' not in st.session_state:
+    st.session_state['button_clicked_data'] = False
+    st.session_state['button_clicked'] = False
+    st.session_state['button_clicked'] = False
+    st.session_state['button_set_clicked'] = False
+    st.session_state['button_launch_clicked'] = False
 
 def callback_data():
     st.session_state.button_clicked_data = True
@@ -173,12 +179,8 @@ if st.session_state.button_set_clicked:
         #     ("Automatic", "Manual")
         #     )
 
-        if 'X_RTFE' not in st.session_state:
-            st.session_state['X_RTFE'] = 0
-
         st.session_state['X_RTFE'] = st.number_input('X [m]', min_value=0.0,
                                         max_value=10000000.0, value=100.0, step=0.01)
-
         st.session_state['Y_RTFE'] = st.number_input('Y [m]', min_value=0.0, max_value=10000000.0, value=100.0, step=0.1)
         st.session_state['Z_RTFE'] = st.number_input('Z [m]', min_value=-5000.0, max_value=10000000.0, value=100.0, step=0.1)
         st.session_state['Az_i_RTFE'] = st.number_input('Initial azimuth [°]', min_value=-180.0, max_value=180.0, value=0.0, step=0.1)
@@ -207,6 +209,15 @@ st.sidebar.subheader('RTFE simulation:')
 st.sidebar.button('Launch', on_click = callback_launch)
 if st.session_state.button_launch_clicked:
     st.subheader('RTFE simulation')
+    st.write(f'Selected parameters  \n '
+             f"Initial coordinates: {st.session_state['X_RTFE'], st.session_state['Y_RTFE'], st.session_state['Z_RTFE']} \n"
+             f'Initial azimuth: {st.session_state["Az_i_RTFE"]} \n'
+             f'Initial zenith: {st.session_state["Zen_i_RTFE"]} \n'
+             f'Zenith constraint: {st.session_state["Zen_constr"]} \n'
+             f'Azimuth constraint: {st.session_state["Az_constr"]} \n'
+             f'Dogleg constraint: {st.session_state["Az_constr"]} \n'
+             f'Step length: {st.session_state["Step_L"]} \n'
+             )
 
     if st.session_state['engine'] == 'Evolution algorithm':
         cube = upload_selected_file(st.session_state['file_path'])
