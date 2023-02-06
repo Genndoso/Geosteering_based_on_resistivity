@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Nov 16 12:39:42 2022
+# streamlit run GEOSTEERING_INTERFACE_1.1.py --server.enableCORS=false
+
 
 @author: georgy.peshkov
 """
