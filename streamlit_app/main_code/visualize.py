@@ -5,6 +5,7 @@ import pyvista as pv
 from stpyvista import stpyvista
 pv.global_theme.show_scalar_bar = False
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 def visualize_cube(volume_cut, opacity):
     grid = pv.UniformGrid()
@@ -60,4 +61,30 @@ def vis_2d(file):
         fig = plt.imshow(file[slider, :, :])
         st.pyplot(fig)
 
+def traj_plot(traj_x, traj_y, traj_z, animation=True):
+            fig = go.Figure()
+
+            fig.add_trace(
+                go.Scatter3d(
+                    x=traj_x,
+                    y=traj_z,
+                    z=traj_y,
+                    mode='lines',
+                    line=dict(
+                        color='red',
+                        width=7
+                    ),
+                    name='survey_interpolated'
+                ),
+            )
+            fig.update_layout(scene=dict(
+                #  xaxis_title='X AXIS TITLE',
+                yaxis_title='Drilling direction',
+                zaxis_title='True vertical depth (TVD)'),
+                width=700,
+                margin=dict(r=20, b=10, l=10, t=10))
+
+            fig.update_scenes(zaxis_autorange="reversed")
+
+            return fig
 

@@ -14,7 +14,7 @@ import pandas as pd
 import pickle
 from streamlit_app.main_code.upload_file import save_uploadedfile, upload_selected_file
 from streamlit_app.main_code.file_selector import file_selector
-from streamlit_app.main_code.visualize import visualize_cube, vis_2d
+from streamlit_app.main_code.visualize import visualize_cube, traj_plot
 
 from Algorithm.geosteering_3d.differential_evolution.diff_evolution import DE_algo, plot_results
 
@@ -120,11 +120,11 @@ if st.session_state.button_clicked:
 
             elif st.session_state.projection == "X-Z":
                 # Add slider to column 1
-                slider = column1.slider("Slice # along Y-Z plane", min_value=0,
+                slider = column1.slider("Slice # along X-Z plane", min_value=0,
                                         on_change=callback, max_value=st.session_state.file.shape[1], value=1)
                 # Add plot to column 2
                 fig, ax = plt.subplots(1,1)
-                ax = plt.imshow(st.session_state.file[slider, :, :])
+                ax = plt.imshow(st.session_state.file[:, slider, :])
                 st.pyplot(fig)
 
 
@@ -142,20 +142,20 @@ else:
     st.sidebar.write('')
     
 ##################################################################################################################### 
-st.sidebar.subheader('Well trajectory planning parameters:')       
-if st.sidebar.button('Set', key='1', on_click=no_vis):
-    st.subheader('Well trajectory planning parameters')
-    with st.form(key='my_form'):
-        X = st.number_input('Well head X [m]', min_value=0.0, max_value=10000000.0, value=0.0, step=0.1)
-        Y = st.number_input('Well head Y [m]', min_value=0.0, max_value=10000000.0, value=0.0, step=0.1)
-        MD = st.number_input('Planned MD [ft]', min_value=0.0, max_value=36000.0, value=0.0, step=0.1)
-        Dog_leg_depth = st.number_input('MD for dogleg starting [ft]', min_value=0.0, max_value=36000.0, value=0.0, step=0.1)
-        Dog_leg_az = st.number_input('Azimuth for dogleg starting [ft]', min_value=-180.0, max_value=180.0, value=0.0, step=0.1)
-        
-        submit_button = st.form_submit_button(label='Submit parameters')    
-    
-else:
-    st.sidebar.write('')    
+# st.sidebar.subheader('Well trajectory planning parameters:')
+# if st.sidebar.button('Set', key='1', on_click=no_vis):
+#     st.subheader('Well trajectory planning parameters')
+#     with st.form(key='my_form'):
+#         X = st.number_input('Well head X [m]', min_value=0.0, max_value=10000000.0, value=0.0, step=0.1)
+#         Y = st.number_input('Well head Y [m]', min_value=0.0, max_value=10000000.0, value=0.0, step=0.1)
+#         MD = st.number_input('Planned MD [ft]', min_value=0.0, max_value=36000.0, value=0.0, step=0.1)
+#         Dog_leg_depth = st.number_input('MD for dogleg starting [ft]', min_value=0.0, max_value=36000.0, value=0.0, step=0.1)
+#         Dog_leg_az = st.number_input('Azimuth for dogleg starting [ft]', min_value=-180.0, max_value=180.0, value=0.0, step=0.1)
+#
+#         submit_button = st.form_submit_button(label='Submit parameters')
+#
+# else:
+#     st.sidebar.write('')
 #####################################################################################################################  
 
 
@@ -180,21 +180,18 @@ if st.session_state.button_set_clicked:
         #     )
 
         st.session_state['X_RTFE'] = st.number_input('X [m]', min_value=0.0,
-                                        max_value=10000000.0, value=100.0, step=0.01)
-        st.session_state['Y_RTFE'] = st.number_input('Y [m]', min_value=0.0, max_value=10000000.0, value=100.0, step=0.1)
-        st.session_state['Z_RTFE'] = st.number_input('Z [m]', min_value=-5000.0, max_value=10000000.0, value=100.0, step=0.1)
+                                        max_value=10000000.0, value=30.0, step=0.01)
+        st.session_state['Y_RTFE'] = st.number_input('Y [m]', min_value=0.0, max_value=10000000.0, value=35.0, step=0.1)
+        st.session_state['Z_RTFE'] = st.number_input('Z [m]', min_value=-5000.0, max_value=10000000.0, value=10.0, step=0.1)
         st.session_state['Az_i_RTFE'] = st.number_input('Initial azimuth [°]', min_value=-180.0, max_value=180.0, value=0.0, step=0.1)
         st.session_state['Zen_i_RTFE'] = st.number_input('Initial zenith [°]', min_value=0.0, max_value=180.0, value=0.0, step=0.1)
         st.session_state['Az_constr'] = st.number_input('Azimuth constraint [°]', min_value=0.0, max_value=180.0, value=180.0, step=0.01)
         st.session_state['Zen_constr'] = st.number_input('Zenith constraint [°]', min_value=0.0, max_value=92.0, value=92.0, step=0.01)
-        st.session_state['DL_constr'] = st.number_input('Dogleg constraint [°]', min_value=-180.0, max_value=180.0, value=0.0, step=0.1)
-        st.session_state['Step_L'] = st.number_input('Length of 1 step [m]', min_value=0.0, max_value=50.0, value=2.0, step=1.0)
-
-
+        st.session_state['DL_constr'] = st.number_input('Dogleg constraint [°/10m]', min_value=-180.0, max_value=180.0, value=2.0, step=0.1)
+        st.session_state['Step_L'] = st.number_input('Length of 1 step [m]', min_value=0.0, max_value=50.0, value=5.0, step=1.0)
 
         submit_button = st.form_submit_button(label='Submit')
-        if submit_button:
-            st.write([st.session_state['X_RTFE'], st.session_state['Y_RTFE'], st.session_state['Z_RTFE']])
+
 
 
 #####################################################################################################################  
@@ -222,15 +219,15 @@ if st.session_state.button_launch_clicked:
     if st.session_state['engine'] == 'Evolution algorithm':
         cube = upload_selected_file(st.session_state['file_path'])
         engine = DE_algo(cube)
+        with st.spinner('Planning the trajectory..'):
+            OFV, traj, df = engine.DE_planning(
 
-        OFV, traj, df = engine.DE_planning(
-
-            bounds=[(-20, st.session_state['Az_constr']), (0, st.session_state['Zen_constr'] )],
-            length=st.session_state['Step_L'], angle_constraint=st.session_state['DL_constr'],
-            init_incl=[st.session_state['Zen_i_RTFE'], st.session_state['Zen_i_RTFE']],
-            init_azi=[st.session_state['Az_i_RTFE'], st.session_state['Az_i_RTFE']],
-           init_pos=[st.session_state['X_RTFE'], st.session_state['Y_RTFE'], st.session_state['Z_RTFE']])
-
+                bounds=[(-20, st.session_state['Az_constr']),(-20, st.session_state['Az_constr']),(-20, st.session_state['Az_constr']),
+                        (0, st.session_state['Zen_constr']),(0, st.session_state['Zen_constr']),(0, st.session_state['Zen_constr'])],
+                length=st.session_state['Step_L'], angle_constraint=st.session_state['DL_constr'],
+                init_incl=[st.session_state['Zen_i_RTFE'], st.session_state['Zen_i_RTFE']],
+                init_azi=[st.session_state['Az_i_RTFE'], st.session_state['Az_i_RTFE']],
+               init_pos=[st.session_state['X_RTFE'], st.session_state['Y_RTFE'], st.session_state['Z_RTFE']])
 
         st.success(f'Objective function value : {round(float(OFV),2)}')
 
@@ -242,6 +239,11 @@ if st.session_state.button_launch_clicked:
         st.write('')
 
         st.subheader('Trajectory 3D view')
+        fig = traj_plot(traj[0],traj[1],traj[2])
+        st.pyplot(fig)
+
+
+
         st.write('Later')
 
         st.subheader('Plan view')
@@ -259,7 +261,7 @@ if st.session_state.button_launch_clicked:
         st.dataframe(st.session_state['trajectory_table'])
 
         st.subheader('OFV values')
-        Plan_tr = 2456
+        Plan_tr = 468
 
         st.write('Planned trajectory OFV:', Plan_tr)
         st.write('Corrected trajectory OFV:', st.session_state['OFV'])
